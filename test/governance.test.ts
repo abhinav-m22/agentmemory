@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 vi.mock("../src/logger.js", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -159,10 +159,24 @@ describe("Governance Functions", () => {
       });
     }
 
+    function mockPersistence() {
+      return {
+        scheduleSave: vi.fn(),
+        save: vi.fn(async () => {}),
+      };
+    }
+
     beforeEach(() => {
       // SearchIndex is a module-level singleton — wipe it so cases
       // don't bleed into each other.
       getSearchIndex().clear();
+      setIndexPersistence(null);
+    });
+
+    // The persistence singleton is module-scoped; without this reset
+    // the last test's mock would leak into sibling tests in the outer
+    // suite and trigger unexpected spy invocations.
+    afterEach(() => {
       setIndexPersistence(null);
     });
 
@@ -179,25 +193,28 @@ describe("Governance Functions", () => {
       expect(getSearchIndex().has("mem_2")).toBe(true);
     });
 
-    it("governance-delete schedules a persistence save", async () => {
-      const scheduleSave = vi.fn();
-      setIndexPersistence({ scheduleSave });
+    it("governance-delete flushes persistence immediately", async () => {
+      const persistence = mockPersistence();
+      setIndexPersistence(persistence);
       getSearchIndex().add(indexedObs("mem_1", "alpha"));
 
       await sdk.trigger("mem::governance-delete", { memoryIds: ["mem_1"] });
 
-      expect(scheduleSave).toHaveBeenCalled();
+      // Delete paths must use the synchronous save (not the debounced
+      // scheduleSave) so a process exit immediately after delete can't
+      // resurrect the entry on next boot.
+      expect(persistence.save).toHaveBeenCalled();
     });
 
-    it("governance-delete skips persistence save when nothing was deleted", async () => {
-      const scheduleSave = vi.fn();
-      setIndexPersistence({ scheduleSave });
+    it("governance-delete skips persistence flush when nothing was deleted", async () => {
+      const persistence = mockPersistence();
+      setIndexPersistence(persistence);
 
       await sdk.trigger("mem::governance-delete", {
         memoryIds: ["nonexistent_999"],
       });
 
-      expect(scheduleSave).not.toHaveBeenCalled();
+      expect(persistence.save).not.toHaveBeenCalled();
     });
 
     it("governance-bulk removes deleted memories from the search index", async () => {
@@ -213,14 +230,14 @@ describe("Governance Functions", () => {
       expect(getSearchIndex().has("mem_2")).toBe(true);
     });
 
-    it("governance-bulk schedules a persistence save", async () => {
-      const scheduleSave = vi.fn();
-      setIndexPersistence({ scheduleSave });
+    it("governance-bulk flushes persistence immediately", async () => {
+      const persistence = mockPersistence();
+      setIndexPersistence(persistence);
       getSearchIndex().add(indexedObs("mem_1", "alpha"));
 
       await sdk.trigger("mem::governance-bulk", { type: ["pattern"] });
 
-      expect(scheduleSave).toHaveBeenCalled();
+      expect(persistence.save).toHaveBeenCalled();
     });
   });
 
