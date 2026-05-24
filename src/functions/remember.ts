@@ -6,7 +6,7 @@ import { withKeyedLock } from "../state/keyed-mutex.js";
 import { memoryToObservation } from "../state/memory-utils.js";
 import { deleteAccessLog } from "./access-tracker.js";
 import { recordAudit } from "./audit.js";
-import { getSearchIndex, vectorIndexAddGuarded } from "./search.js";
+import { getSearchIndex, vectorIndexAddGuarded, vectorIndexRemove } from "./search.js";
 import { logger } from "../logger.js";
 
 export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
@@ -157,6 +157,8 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
           await decrementImageRef(kv, sdk, mem.imageRef);
         }
         await deleteAccessLog(kv, data.memoryId);
+        getSearchIndex().remove(data.memoryId);
+        vectorIndexRemove(data.memoryId);
         deletedMemoryIds.push(data.memoryId);
         deleted++;
       }
@@ -176,6 +178,8 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
           if (obs?.imageRef && obs.imageRef !== obs.imageData) {
             await decrementImageRef(kv, sdk, obs.imageRef);
           }
+          getSearchIndex().remove(obsId);
+          vectorIndexRemove(obsId);
           deletedObservationIds.push(obsId);
           deleted++;
         }
@@ -195,6 +199,8 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
           if (obs.imageRef && obs.imageRef !== obs.imageData) {
             await decrementImageRef(kv, sdk, obs.imageRef);
           }
+          getSearchIndex().remove(obs.id);
+          vectorIndexRemove(obs.id);
           deletedObservationIds.push(obs.id);
           deleted++;
         }

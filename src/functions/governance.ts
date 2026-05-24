@@ -4,6 +4,7 @@ import { KV } from "../state/schema.js";
 import type { StateKV } from "../state/kv.js";
 import { recordAudit, safeAudit, queryAudit } from "./audit.js";
 import { deleteAccessLog } from "./access-tracker.js";
+import { getSearchIndex, vectorIndexRemove } from "./search.js";
 import { logger } from "../logger.js";
 
 export function registerGovernanceFunction(sdk: ISdk, kv: StateKV): void {
@@ -23,6 +24,8 @@ export function registerGovernanceFunction(sdk: ISdk, kv: StateKV): void {
         if (mem) {
           await kv.delete(KV.memories, id);
           await deleteAccessLog(kv, id);
+          getSearchIndex().remove(id);
+          vectorIndexRemove(id);
           deleted++;
         }
       }
@@ -107,6 +110,8 @@ export function registerGovernanceFunction(sdk: ISdk, kv: StateKV): void {
           batch.map(async (mem) => {
             await kv.delete(KV.memories, mem.id);
             await deleteAccessLog(kv, mem.id);
+            getSearchIndex().remove(mem.id);
+            vectorIndexRemove(mem.id);
           }),
         );
         results.forEach((result, j) => {

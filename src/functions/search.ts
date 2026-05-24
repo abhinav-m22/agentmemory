@@ -34,6 +34,10 @@ export function getEmbeddingProvider(): EmbeddingProvider | null {
   return currentEmbeddingProvider
 }
 
+export function vectorIndexRemove(id: string): void {
+  vectorIndex?.remove(id);
+}
+
 // Hard cap on embedding input length. Most providers cap input around
 // 8k tokens (~32k chars at ~4 chars/token). Truncate defensively so a
 // huge memory.content can't 400 the embed call or blow context budget
