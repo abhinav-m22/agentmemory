@@ -4,7 +4,7 @@ import { KV } from "../state/schema.js";
 import { StateKV } from "../state/kv.js";
 import { recordAudit } from "./audit.js";
 import { deleteAccessLog } from "./access-tracker.js";
-import { getSearchIndex, vectorIndexRemove, scheduleIndexSave } from "./search.js";
+import { getSearchIndex, vectorIndexRemove, flushIndexSave } from "./search.js";
 import { logger } from "../logger.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -191,7 +191,7 @@ export function registerAutoForgetFunction(sdk: ISdk, kv: StateKV): void {
       }
 
       if (!dryRun && (result.ttlExpired.length > 0 || result.lowValueObs.length > 0)) {
-        scheduleIndexSave();
+        await flushIndexSave();
       }
 
       logger.info("Auto-forget complete", {
