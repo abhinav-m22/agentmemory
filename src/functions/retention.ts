@@ -14,7 +14,7 @@ import {
   normalizeAccessLog,
 } from "./access-tracker.js";
 import { recordAudit } from "./audit.js";
-import { getSearchIndex, vectorIndexRemove } from "./search.js";
+import { getSearchIndex, vectorIndexRemove, scheduleIndexSave } from "./search.js";
 import { logger } from "../logger.js";
 
 const DEFAULT_DECAY: DecayConfig = {
@@ -389,6 +389,7 @@ export function registerRetentionFunctions(
       // one record per invocation — per-candidate audits would flood
       // the audit log during normal eviction sweeps.
       if (evicted > 0) {
+        scheduleIndexSave();
         await recordAudit(kv, "delete", "mem::retention-evict", evictedIds, {
           threshold,
           evicted,

@@ -37,6 +37,7 @@ import {
   getSearchIndex,
   setVectorIndex,
   setEmbeddingProvider,
+  setIndexPersistence,
 } from "./functions/search.js";
 import { registerContextFunction } from "./functions/context.js";
 import { registerSummarizeFunction } from "./functions/summarize.js";
@@ -344,6 +345,11 @@ async function main() {
   const healthMonitor = registerHealthMonitor(sdk, kv);
 
   const indexPersistence = new IndexPersistence(kv, bm25Index, vectorIndex);
+  // Wire the persistence hook so delete paths can flush BM25/vector
+  // index mutations to disk. Without this, an in-memory remove can be
+  // lost across a hard process exit and the persisted snapshot
+  // restores the deleted entry at next boot.
+  setIndexPersistence(indexPersistence);
 
   const loaded = await indexPersistence.load().catch((err) => {
     console.warn(`[agentmemory] Failed to load persisted index:`, err);

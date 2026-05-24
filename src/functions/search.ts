@@ -38,6 +38,22 @@ export function vectorIndexRemove(id: string): void {
   vectorIndex?.remove(id);
 }
 
+// Persistence sync hook. Without this, index removals only live in
+// memory; a crash/SIGKILL before graceful shutdown reloads a stale
+// snapshot at boot and the deleted entry resurrects in the index.
+// Wired by src/index.ts after IndexPersistence is constructed; no-op
+// until then so unit tests that exercise the delete paths in
+// isolation don't need to wire persistence.
+let indexPersistence: { scheduleSave: () => void } | null = null;
+
+export function setIndexPersistence(p: { scheduleSave: () => void } | null): void {
+  indexPersistence = p;
+}
+
+export function scheduleIndexSave(): void {
+  indexPersistence?.scheduleSave();
+}
+
 // Hard cap on embedding input length. Most providers cap input around
 // 8k tokens (~32k chars at ~4 chars/token). Truncate defensively so a
 // huge memory.content can't 400 the embed call or blow context budget

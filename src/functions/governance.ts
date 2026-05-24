@@ -4,7 +4,7 @@ import { KV } from "../state/schema.js";
 import type { StateKV } from "../state/kv.js";
 import { recordAudit, safeAudit, queryAudit } from "./audit.js";
 import { deleteAccessLog } from "./access-tracker.js";
-import { getSearchIndex, vectorIndexRemove } from "./search.js";
+import { getSearchIndex, vectorIndexRemove, scheduleIndexSave } from "./search.js";
 import { logger } from "../logger.js";
 
 export function registerGovernanceFunction(sdk: ISdk, kv: StateKV): void {
@@ -29,6 +29,8 @@ export function registerGovernanceFunction(sdk: ISdk, kv: StateKV): void {
           deleted++;
         }
       }
+
+      if (deleted > 0) scheduleIndexSave();
 
       await recordAudit(
         kv,
@@ -133,6 +135,8 @@ export function registerGovernanceFunction(sdk: ISdk, kv: StateKV): void {
           }
         });
       }
+
+      if (successfulIds.length > 0) scheduleIndexSave();
 
       await safeAudit(
         kv,

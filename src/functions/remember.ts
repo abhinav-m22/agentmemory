@@ -6,7 +6,7 @@ import { withKeyedLock } from "../state/keyed-mutex.js";
 import { memoryToObservation } from "../state/memory-utils.js";
 import { deleteAccessLog } from "./access-tracker.js";
 import { recordAudit } from "./audit.js";
-import { getSearchIndex, vectorIndexAddGuarded, vectorIndexRemove } from "./search.js";
+import { getSearchIndex, vectorIndexAddGuarded, vectorIndexRemove, scheduleIndexSave } from "./search.js";
 import { logger } from "../logger.js";
 
 export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
@@ -211,6 +211,7 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
       }
 
       if (deleted > 0) {
+        scheduleIndexSave();
         await recordAudit(
           kv,
           "forget",
