@@ -158,6 +158,11 @@ export function registerConsolidateFunction(
 
           const now = new Date().toISOString();
           const obsIds = [...new Set(top.map((o) => o.id))];
+          const scopedProject =
+            typeof data.project === "string" && data.project.trim().length > 0
+              ? data.project.trim()
+              : undefined;
+
           if (existingMatch) {
             existingMatch.isLatest = false;
             await kv.set(KV.memories, existingMatch.id, existingMatch);
@@ -179,6 +184,7 @@ export function registerConsolidateFunction(
               ],
               sourceObservationIds: obsIds,
               isLatest: true,
+              ...(scopedProject !== undefined && { project: scopedProject }),
             };
             await kv.set(KV.memories, evolved.id, evolved);
             await recordAudit(kv, "evolve", "mem::consolidate", [evolved.id], {
@@ -198,6 +204,7 @@ export function registerConsolidateFunction(
               sourceObservationIds: obsIds,
               version: 1,
               isLatest: true,
+              ...(scopedProject !== undefined && { project: scopedProject }),
             };
             await kv.set(KV.memories, memory.id, memory);
             await recordAudit(kv, "remember", "mem::consolidate", [memory.id], {

@@ -75,6 +75,12 @@ export const CORE_TOOLS: McpToolDef[] = [
           type: "string",
           description: "Comma-separated relevant file paths",
         },
+        project: {
+          type: "string",
+          description:
+            "Project identifier this memory belongs to (e.g. the project name or path). " +
+            "When set, this memory will only surface in sessions for the same project.",
+        },
       },
       required: ["content"],
     },

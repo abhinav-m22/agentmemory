@@ -877,13 +877,16 @@ export function registerApiTriggers(
     config: { api_path: "/agentmemory/enrich", http_method: "POST" },
   });
 
-  sdk.registerFunction("api::remember", 
+  sdk.registerFunction("api::remember",
     async (
       req: ApiRequest<{
         content: string;
         type?: string;
         concepts?: string[];
         files?: string[];
+        ttlDays?: number;
+        sourceObservationIds?: string[];
+        project?: string;
       }>,
     ): Promise<Response> => {
       const authErr = checkAuth(req, secret);
@@ -894,6 +897,12 @@ export function registerApiTriggers(
         !req.body.content.trim()
       ) {
         return { status_code: 400, body: { error: "content is required" } };
+      }
+      if (
+        req.body.project !== undefined &&
+        (typeof req.body.project !== "string" || !req.body.project.trim())
+      ) {
+        return { status_code: 400, body: { error: "project must be a non-empty string" } };
       }
       const result = await sdk.trigger({ function_id: "mem::remember", payload: req.body });
       return { status_code: 201, body: result };

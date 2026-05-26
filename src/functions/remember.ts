@@ -20,6 +20,7 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
       ttlDays?: number;
       sourceObservationIds?: string[];
       agentId?: string;
+      project?: string;
     }) => {
       if (
         !data.content ||
@@ -59,6 +60,17 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
         const lowerContent = data.content.toLowerCase();
         for (const existing of existingMemories) {
           if (existing.isLatest === false) continue;
+          // Never supersede a memory that belongs to a different project.
+          // Both sides must have an explicit project for the guard to engage;
+          // an unscoped memory (legacy, no project field) is treated as a
+          // wildcard so pre-existing data is not stranded.
+          if (
+            data.project &&
+            existing.project &&
+            existing.project !== data.project
+          ) {
+            continue;
+          }
           const similarity = jaccardSimilarity(
             lowerContent,
             existing.content.toLowerCase(),
@@ -79,6 +91,11 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
           typeof data.agentId === "string" && data.agentId.trim().length > 0
             ? data.agentId.trim().slice(0, 128)
             : getAgentId();
+        const project =
+          typeof data.project === "string" && data.project.trim().length > 0
+            ? data.project.trim()
+            : undefined;
+
         const memory: Memory = {
           id: generateId("mem"),
           createdAt: now,
@@ -98,6 +115,7 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
           ),
           isLatest: true,
           ...(callAgentId ? { agentId: callAgentId } : {}),
+          ...(project !== undefined && { project }),
         };
 
         if (data.ttlDays && typeof data.ttlDays === "number" && data.ttlDays > 0) {
@@ -143,6 +161,7 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
         logger.info("Memory saved", {
           memId: memory.id,
           type: memory.type,
+          project: memory.project,
         });
         return { success: true, memory };
       });

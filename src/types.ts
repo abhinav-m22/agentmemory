@@ -101,6 +101,7 @@ export interface Memory {
   imageRef?: string;
   imageData?: string;
   agentId?: string;
+  project?: string;
 }
 
 export interface SessionSummary {
