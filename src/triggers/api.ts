@@ -994,12 +994,21 @@ export function registerApiTriggers(
     config: { api_path: "/agentmemory/generate-rules", http_method: "POST" },
   });
 
-  sdk.registerFunction("api::migrate", 
-    async (req: ApiRequest<{ dbPath: string }>): Promise<Response> => {
+  sdk.registerFunction("api::migrate",
+    async (
+      req: ApiRequest<{ dbPath?: string; step?: string; dryRun?: boolean }>,
+    ): Promise<Response> => {
       const authErr = checkAuth(req, secret);
       if (authErr) return authErr;
-      if (!req.body?.dbPath || typeof req.body.dbPath !== "string") {
-        return { status_code: 400, body: { error: "dbPath is required" } };
+      const hasStep =
+        typeof req.body?.step === "string" && req.body.step.trim().length > 0;
+      const hasDbPath =
+        typeof req.body?.dbPath === "string" && req.body.dbPath.trim().length > 0;
+      if (!hasStep && !hasDbPath) {
+        return {
+          status_code: 400,
+          body: { error: "Either step (string) or dbPath (string) is required" },
+        };
       }
       const result = await sdk.trigger({ function_id: "mem::migrate", payload: req.body });
       return { status_code: 200, body: result };
