@@ -378,15 +378,42 @@ export function registerSearchFunction(sdk: ISdk, kv: StateKV): void {
         return s ?? null
       }
 
+      // Cache for memory project lookups. Memories indexed via mem::remember
+      // use a synthetic sessionId ('memory' or the first real sessionId) that
+      // either has no KV.sessions entry or belongs to a different project.
+      // When loadSession returns null we fall through to a KV.memories probe
+      // so project-filtered search can include or exclude them correctly.
+      const memoryProjectCache = new Map<string, string | null>()
+      const loadMemoryProject = async (obsId: string): Promise<string | null> => {
+        if (memoryProjectCache.has(obsId)) return memoryProjectCache.get(obsId)!
+        const mem = await kv.get<Memory>(KV.memories, obsId).catch(() => null)
+        const proj = mem?.project ?? null
+        memoryProjectCache.set(obsId, proj)
+        return proj
+      }
+
       // First pass: filter by session (sequential — benefits from session cache).
+      // Memory entries with a synthetic sessionId take a secondary KV.memories
+      // path so project filtering works correctly for them too.
       const candidates: typeof results = []
       for (const r of results) {
         if (candidates.length >= effectiveLimit) break
         if (filtering) {
           const s = await loadSession(r.sessionId)
-          if (!s) continue
-          if (projectFilter && s.project !== projectFilter) continue
-          if (cwdFilter && s.cwd !== cwdFilter) continue
+          if (s) {
+            if (projectFilter && s.project !== projectFilter) continue
+            if (cwdFilter && s.cwd !== cwdFilter) continue
+          } else {
+            // No session found — this is a memory entry with a synthetic
+            // sessionId. Apply project filter against memory.project directly.
+            // An unscoped memory (project === null) passes through so legacy
+            // data remains visible while Phase 3 backfill has not yet run.
+            if (projectFilter) {
+              const memProject = await loadMemoryProject(r.obsId)
+              if (memProject !== null && memProject !== projectFilter) continue
+            }
+            // cwd filter does not apply to unbound memory entries.
+          }
         }
         candidates.push(r)
       }

@@ -832,13 +832,14 @@ export function registerApiTriggers(
     config: { api_path: "/agentmemory/file-context", http_method: "POST" },
   });
 
-  sdk.registerFunction("api::enrich", 
+  sdk.registerFunction("api::enrich",
     async (
       req: ApiRequest<{
         sessionId: string;
         files: string[];
         terms?: string[];
         toolName?: string;
+        project?: string;
       }>,
     ): Promise<Response> => {
       const authErr = checkAuth(req, secret);
@@ -865,6 +866,15 @@ export function registerApiTriggers(
         return {
           status_code: 400,
           body: { error: "terms must be an array of strings" },
+        };
+      }
+      if (
+        req.body.project !== undefined &&
+        (typeof req.body.project !== "string" || !req.body.project.trim())
+      ) {
+        return {
+          status_code: 400,
+          body: { error: "project must be a non-empty string" },
         };
       }
       const result = await sdk.trigger({ function_id: "mem::enrich", payload: req.body });

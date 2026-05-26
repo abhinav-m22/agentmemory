@@ -77,12 +77,24 @@ async function main() {
   }
 
   const sessionId = (data.session_id as string) || "unknown";
+  // project mirrors how sessions are registered: prefer an explicit project
+  // field, fall back to cwd so the scope matches what mem::session/start sets.
+  const project =
+    (data.project as string | undefined) ||
+    (data.cwd as string | undefined) ||
+    undefined;
 
   try {
     const res = await fetch(`${REST_URL}/agentmemory/enrich`, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ sessionId, files, terms, toolName }),
+      body: JSON.stringify({
+        sessionId,
+        files,
+        terms,
+        toolName,
+        ...(project !== undefined && { project }),
+      }),
       signal: AbortSignal.timeout(2000),
     });
 
