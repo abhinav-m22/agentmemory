@@ -77,12 +77,15 @@ async function main() {
   }
 
   const sessionId = (data.session_id as string) || "unknown";
-  // project mirrors how sessions are registered: prefer an explicit project
-  // field, fall back to cwd so the scope matches what mem::session/start sets.
+  // Only forward an explicit project field. cwd is an absolute filesystem path
+  // and must not be used as a project identifier — memories are scoped by short
+  // project names (e.g. "api", "web"), not paths. Sending a cwd-path as project
+  // would cause all scoped memories to be incorrectly filtered out on the server
+  // because the path never matches the stored project name.
   const project =
-    (data.project as string | undefined) ||
-    (data.cwd as string | undefined) ||
-    undefined;
+    typeof data.project === "string" && data.project.trim().length > 0
+      ? data.project.trim()
+      : undefined;
 
   try {
     const res = await fetch(`${REST_URL}/agentmemory/enrich`, {

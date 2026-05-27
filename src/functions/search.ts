@@ -404,15 +404,25 @@ export function registerSearchFunction(sdk: ISdk, kv: StateKV): void {
             if (projectFilter && s.project !== projectFilter) continue
             if (cwdFilter && s.cwd !== cwdFilter) continue
           } else {
-            // No session found — this is a memory entry with a synthetic
-            // sessionId. Apply project filter against memory.project directly.
-            // An unscoped memory (project === null) passes through so legacy
-            // data remains visible while Phase 3 backfill has not yet run.
+            // Session not found. Two cases arrive here:
+            //   1. Synthetic sessionId — memories indexed via mem::remember use
+            //      sessionIds[0] ?? 'memory'. The string 'memory' has no session
+            //      entry; neither does a real sessionId when sessionIds[0] happens
+            //      to be a session from a different lifecycle. Probe KV.memories
+            //      directly to get the memory's own project field.
+            //   2. Deleted session — the session existed when the entry was indexed
+            //      but was since evicted. The KV.memories probe returns null for
+            //      these (they are observations, not memories), so memProject is
+            //      null and the entry passes through as unscoped. This is the safe
+            //      fallback: we lose the ability to filter but never incorrectly
+            //      block a result whose session we can no longer verify.
+            // In both cases, a null memProject means "project unknown — treat as
+            // unscoped and let it through" to preserve backward-compatibility.
             if (projectFilter) {
               const memProject = await loadMemoryProject(r.obsId)
               if (memProject !== null && memProject !== projectFilter) continue
             }
-            // cwd filter does not apply to unbound memory entries.
+            // cwd filter does not apply to unbound entries.
           }
         }
         candidates.push(r)
