@@ -8,6 +8,17 @@ vi.mock("../src/state/keyed-mutex.js", () => ({
   withKeyedLock: <T>(_key: string, fn: () => Promise<T>) => fn(),
 }));
 
+vi.mock("iii-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("iii-sdk")>();
+  return {
+    ...actual,
+    TriggerAction: {
+      ...actual.TriggerAction,
+      Void: vi.fn(() => ({ type: "void" })),
+    },
+  };
+});
+
 import { vi } from "vitest";
 import { registerRememberFunction } from "../src/functions/remember.js";
 import { getSearchIndex, setIndexPersistence } from "../src/functions/search.js";

@@ -71,10 +71,7 @@ export function registerEnrichFunction(sdk: ISdk, kv: StateKV): void {
               (m) =>
                 m.type === "bug" &&
                 m.isLatest &&
-                // Only include memories whose project matches the caller's.
-                // When either side has no project (legacy unscoped memory, or
-                // caller did not pass a project) the guard does not engage so
-                // pre-existing data remains visible everywhere.
+                // Guard only when both sides have an explicit project; unscoped memories pass through.
                 (!project || !m.project || m.project === project) &&
                 m.files.some((f) =>
                   data.files.some((df) => f.includes(df) || df.includes(f)),

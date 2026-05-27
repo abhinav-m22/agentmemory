@@ -213,6 +213,13 @@ describe("mem::consolidate — cross-project existingMatch guard", () => {
     // The existing scoped memory should have been evolved (unscoped run is unrestricted)
     const old = await kv.get<Memory>(KV.memories, scopedMemory.id);
     expect(old?.isLatest).toBe(false);
+
+    // The evolved successor should be latest and carry no project (unscoped run)
+    const allMemories = await kv.list<Memory>(KV.memories);
+    const successor = allMemories.find((m) => m.isLatest && m.id !== scopedMemory.id);
+    expect(successor).toBeDefined();
+    expect(successor?.isLatest).toBe(true);
+    expect(successor?.project).toBeUndefined();
   });
 
   it("stamps the correct project on newly created memories", async () => {

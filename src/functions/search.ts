@@ -344,8 +344,8 @@ export function registerSearchFunction(sdk: ISdk, kv: StateKV): void {
         }
         effectiveLimit = Math.min(data.limit, MAX_LIMIT)
       }
-      const projectFilter = typeof data.project === 'string' && data.project.length > 0 ? data.project : undefined
-      const cwdFilter = typeof data.cwd === 'string' && data.cwd.length > 0 ? data.cwd : undefined
+      const projectFilter = typeof data.project === 'string' && data.project.trim().length > 0 ? data.project.trim() : undefined
+      const cwdFilter = typeof data.cwd === 'string' && data.cwd.trim().length > 0 ? data.cwd.trim() : undefined
       const format = typeof data.format === 'string' ? data.format : 'full'
       if (!['full', 'compact', 'narrative'].includes(format)) {
         throw new Error("mem::search: format must be one of 'full', 'compact', or 'narrative'")

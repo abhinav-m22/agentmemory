@@ -51,6 +51,13 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
         : "fact";
 
       const now = new Date().toISOString();
+      // Normalize project early so every subsequent comparison and storage
+      // operation uses the same cleaned value. Raw data.project must not be
+      // referenced below this point.
+      const project =
+        typeof data.project === "string" && data.project.trim().length > 0
+          ? data.project.trim()
+          : undefined;
 
       return withKeyedLock("mem:remember", async () => {
         const existingMemories = await kv.list<Memory>(KV.memories);
@@ -64,11 +71,7 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
           // Both sides must have an explicit project for the guard to engage;
           // an unscoped memory (legacy, no project field) is treated as a
           // wildcard so pre-existing data is not stranded.
-          if (
-            data.project &&
-            existing.project &&
-            existing.project !== data.project
-          ) {
+          if (project && existing.project && existing.project !== project) {
             continue;
           }
           const similarity = jaccardSimilarity(
@@ -91,10 +94,6 @@ export function registerRememberFunction(sdk: ISdk, kv: StateKV): void {
           typeof data.agentId === "string" && data.agentId.trim().length > 0
             ? data.agentId.trim().slice(0, 128)
             : getAgentId();
-        const project =
-          typeof data.project === "string" && data.project.trim().length > 0
-            ? data.project.trim()
-            : undefined;
 
         const memory: Memory = {
           id: generateId("mem"),

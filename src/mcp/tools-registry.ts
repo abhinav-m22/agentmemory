@@ -78,8 +78,10 @@ export const CORE_TOOLS: McpToolDef[] = [
         project: {
           type: "string",
           description:
-            "Project identifier this memory belongs to (e.g. the project name or path). " +
-            "When set, this memory will only surface in sessions for the same project.",
+            "Stable canonical project identifier this memory belongs to (e.g. a slug, " +
+            "UUID, or registry key). Must match the value used when the session was " +
+            "started. Do not use filesystem paths or ad-hoc display names — those " +
+            "change across machines and will silently break project scoping.",
         },
       },
       required: ["content"],

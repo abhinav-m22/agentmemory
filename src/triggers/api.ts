@@ -877,7 +877,16 @@ export function registerApiTriggers(
           body: { error: "project must be a non-empty string" },
         };
       }
-      const result = await sdk.trigger({ function_id: "mem::enrich", payload: req.body });
+      const result = await sdk.trigger({
+        function_id: "mem::enrich",
+        payload: {
+          sessionId: req.body.sessionId,
+          files: req.body.files,
+          ...(req.body.terms !== undefined && { terms: req.body.terms }),
+          ...(req.body.toolName !== undefined && { toolName: req.body.toolName }),
+          ...(req.body.project !== undefined && { project: req.body.project }),
+        },
+      });
       return { status_code: 200, body: result };
     },
   );
@@ -914,7 +923,18 @@ export function registerApiTriggers(
       ) {
         return { status_code: 400, body: { error: "project must be a non-empty string" } };
       }
-      const result = await sdk.trigger({ function_id: "mem::remember", payload: req.body });
+      const result = await sdk.trigger({
+        function_id: "mem::remember",
+        payload: {
+          content: req.body.content,
+          ...(req.body.type !== undefined && { type: req.body.type }),
+          ...(req.body.concepts !== undefined && { concepts: req.body.concepts }),
+          ...(req.body.files !== undefined && { files: req.body.files }),
+          ...(req.body.ttlDays !== undefined && { ttlDays: req.body.ttlDays }),
+          ...(req.body.sourceObservationIds !== undefined && { sourceObservationIds: req.body.sourceObservationIds }),
+          ...(req.body.project !== undefined && { project: req.body.project }),
+        },
+      });
       return { status_code: 201, body: result };
     },
   );
@@ -1010,7 +1030,14 @@ export function registerApiTriggers(
           body: { error: "Either step (string) or dbPath (string) is required" },
         };
       }
-      const result = await sdk.trigger({ function_id: "mem::migrate", payload: req.body });
+      const result = await sdk.trigger({
+        function_id: "mem::migrate",
+        payload: {
+          ...(req.body.step !== undefined && { step: req.body.step }),
+          ...(req.body.dbPath !== undefined && { dbPath: req.body.dbPath }),
+          ...(req.body.dryRun !== undefined && { dryRun: req.body.dryRun }),
+        },
+      });
       return { status_code: 200, body: result };
     },
   );
